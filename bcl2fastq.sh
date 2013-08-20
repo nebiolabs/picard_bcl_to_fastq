@@ -2,8 +2,8 @@
 
 #argument: path to the samplesheet in a run folder
 PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.94/
-READ_STRUCTURE=36T8B
-CPU_COUNT=32
+CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
+echo "Running on ${CPU_COUNT} cpus"
 JAVA_OPTS=-Xmx50g
 
 if [ $# -eq 0 ]; then
@@ -15,6 +15,10 @@ sample_sheet=`readlink -f "${1}"`
 echo "Sample sheet: ${sample_sheet}"
 run_path=`dirname "${sample_sheet}"`
 echo "Run path: ${run_path}"
+
+barcode_params="${run_path}/barcode_params.txt"
+multiplex_params="${run_path}/multiplex_params.txt" 
+
 run_barcode=`echo "${run_path}" | rev | cut -f1 -d'/' | rev | cut -f2 -d'-'`
 echo "Barcode: ${run_barcode}"
 
@@ -23,11 +27,26 @@ if [ ! -d ${run_path}/fastq ] ; then
 fi
 
 echo 'barcode_sequence_1	barcode_name	library_name' > ${run_path}/barcode_params.txt
-perl -nle 'print "$3\t$2\t$1" if /^([^,]+)(?:[^,]*,){4}([^,]+),([GCAT]+),.*$/' "${sample_sheet}" >> ${run_path}/barcode_params.txt
-echo 'OUTPUT_PREFIX	BARCODE_1' > ${run_path}/multiplex_params.txt
-echo 'unassigned	N' >> ${run_path}/multiplex_params.txt
-perl -nle 'print "$1\t$3" if /^([^,]+)(?:[^,]*,){4}([^,]+),([GCAT]+),.*$/' "${sample_sheet}" >> ${run_path}/multiplex_params.txt
+perl -nle 'print "$3\t$2\t$1" if /^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),.*$/' "${sample_sheet}" >> ${run_path}/barcode_params.txt
+echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}
+echo 'unassigned	N' >> ${multiplex_params}
+perl -nle 'print "$1\t$3" if /^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),.*$/' "${sample_sheet}" >> ${multiplex_params}
+
+read_cycles=`perl -nle 'print "$1" if /^(\d+),*\s*$/' "${sample_sheet}"`
+bc_cycles=`perl -nle 'if (/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),.*$/) { print length($3); exit}' "${sample_sheet}"`
+READ_STRUCTURE="${read_cycles}T${bc_cycles}B"
+echo "read structure: ${READ_STRUCTURE}"
+
+barcode_count=$((`wc -l "${barcode_params}" | cut -d ' ' -f1` - 1))
+
+if [ $barcode_count -eq 0 ]; then
+	echo "Failed to find any barcodes in ${sample_sheet}" 1>&2
+	exit 1
+fi
 
 cd "${run_path}/fastq"
-java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar  NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE LANE=001 BASECALLS_DIR=${run_path}/Data/Intensities/BaseCalls METRICS_FILE=barcode_metrics.txt BARCODE_FILE=${run_path}/barcode_params.txt
-java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE RUN_BARCODE=$run_barcode LANE=1 BASECALLS_DIR=${run_path}/Data/Intensities/BaseCalls MULTIPLEX_PARAMS=${run_path}/multiplex_params.txt
+
+java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar  NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE LANE=001 BASECALLS_DIR=${run_path}/Data/Intensities/BaseCalls METRICS_FILE=barcode_metrics.txt BARCODE_FILE=${barcode_params}
+
+java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE RUN_BARCODE=$run_barcode LANE=1 BASECALLS_DIR=${run_path}/Data/Intensities/BaseCalls MULTIPLEX_PARAMS=${multiplex_params}
+
