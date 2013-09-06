@@ -1,10 +1,12 @@
 #!/bin/sh
 
 #argument: path to the samplesheet in a run folder
-PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.94/
+PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.97/
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 echo "Running on ${CPU_COUNT} cpus"
-JAVA_OPTS=-Xmx50g
+ulimit -n 4096
+
+JAVA_OPTS=-Xmx50g 
 
 if [ $# -eq 0 ]; then
 	echo "specify the sample sheet"
@@ -54,4 +56,3 @@ cd "${run_path}/fastq"
 
 java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar  MAX_NO_CALLS=2 MIN_MISMATCH_DELTA=2 MAX_MISMATCHES=1 NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE LANE=001 BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" METRICS_FILE=barcode_metrics.txt BARCODE_FILE="${barcode_params}"
 java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE RUN_BARCODE=$run_barcode LANE=1 BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" MULTIPLEX_PARAMS="${multiplex_params}"
-
