@@ -86,13 +86,16 @@ do
 	fi
 		
 	echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}
-	echo "unassigned_L${i}	N" >> ${multiplex_params}
+	if [ "${barcode_count}" -gt "1" ]; then
+		echo "L${i}_unassigned	N" >> ${multiplex_params}
+	fi	
 	if $is_miseq ; then
 		perl -nle "print \"\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
 	else
-		perl -nle "print \"\$2\t\$1\" if (${regex} && length(\$2) > 0) " "${sample_sheet}" >> "${multiplex_params}"
+		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" >> "${multiplex_params}"
 	fi
-	cat $barcode_params
+	#cat $barcode_params
+	#cat $multiplex_params
 	
 	java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar \
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
