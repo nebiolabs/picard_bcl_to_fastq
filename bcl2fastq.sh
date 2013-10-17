@@ -27,9 +27,9 @@ if [ ! -d "${run_path}/fastq" ] ; then
 fi
 
 
-read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell ${run_path}/RunInfo.xml  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell ${run_path}/RunInfo.xml  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell ${run_path}/RunInfo.xml  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 
 #read_cycles=`perl -nle 'print "$1" if /^(\d+),*\s*$/' "${sample_sheet}"`
 #read1_cycles=`echo ${read_cycles} | cut -d' ' -f1`
@@ -55,7 +55,7 @@ MIN_MISMATCH_DELTA=2
 metrics_name="${MAX_NO_CALLS}nc_${MIN_MISMATCH_DELTA}mmd_${MAX_MISMATCHES}mis_bc_metrics.txt"
 
 
-lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell ${run_path}/RunInfo.xml  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 if [ "$lanecount" -eq "1" ]; then
 	echo "Detected miseq format"
 	is_miseq=true
