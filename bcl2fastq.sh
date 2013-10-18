@@ -33,7 +33,7 @@ if [ ! -d "${run_path}/fastq" ] ; then
 	mkdir "${run_path}/fastq"
 fi
 
-if [ ! -x xmllint ] ; then
+if [ ! -x `which xmllint` ] ; then
 	echo "xmllint program is not found on the path, cannot continue."
 	exit 1
 fi
