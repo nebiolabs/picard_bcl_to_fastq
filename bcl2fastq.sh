@@ -1,13 +1,20 @@
 #!/bin/sh
 
 #argument: path to the samplesheet in a run folder
+
+#Path setup
 PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.97/
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
-CPU_COUNT=32
-echo "Running on ${CPU_COUNT} cpus"
-#ulimit -n 4096
 
+#demultiplexer settings
+MAX_MISMATCHES=0
+MAX_NO_CALLS=0
+MIN_MISMATCH_DELTA=2
+
+#Java settings
 JAVA_OPTS=-Xmx100g 
+
+echo "Running on ${CPU_COUNT} cpus"
 
 if [ $# -eq 0 ]; then
 	echo "specify the sample sheet"
@@ -26,34 +33,29 @@ if [ ! -d "${run_path}/fastq" ] ; then
 	mkdir "${run_path}/fastq"
 fi
 
+if [ ! -x xmllint ] ; then
+	echo "xmllint program is not found on the path, cannot continue."
+	exit 1
+fi
 
 read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 
-#read_cycles=`perl -nle 'print "$1" if /^(\d+),*\s*$/' "${sample_sheet}"`
-#read1_cycles=`echo ${read_cycles} | cut -d' ' -f1`
-#read2_cycles=`echo ${read_cycles} | cut -d' ' -f2 -s`
-
-#bc_cycles=`perl -nle 'if (/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),.*$/) { print length($3); exit}' "${sample_sheet}"`
-READ_STRUCTURE="${read1_cycles}T"
+read_structure="${read1_cycles}T"
 
 if [ "$bc_cycles" -gt "0" ]; then
-	READ_STRUCTURE="${READ_STRUCTURE}${bc_cycles}B"
+	read_structure="${read_structure}${bc_cycles}B"
 fi
 
 if [ -n "${read2_cycles}" ] ; then
-	READ_STRUCTURE="${READ_STRUCTURE}${read2_cycles}T"
+	read_structure="${read_structure}${read2_cycles}T"
 fi 
-echo "read structure: ${READ_STRUCTURE}"
+echo "read structure: ${read_structure}"
 
 cd "${run_path}/fastq"
 
-MAX_MISMATCHES=0
-MAX_NO_CALLS=0
-MIN_MISMATCH_DELTA=2
 metrics_name="${MAX_NO_CALLS}nc_${MIN_MISMATCH_DELTA}mmd_${MAX_MISMATCHES}mis_bc_metrics.txt"
-
 
 lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 if [ "$lanecount" -eq "1" ]; then
@@ -100,13 +102,13 @@ do
 	java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar \
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
-		READ_STRUCTURE=$READ_STRUCTURE \
+		read_structure=$read_structure \
 		LANE=${i} \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 
 	java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar \
-		NUM_PROCESSORS=$CPU_COUNT READ_STRUCTURE=$READ_STRUCTURE \
+		NUM_PROCESSORS=$CPU_COUNT read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode LANE=${i} \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" MULTIPLEX_PARAMS="${multiplex_params}"
 done
