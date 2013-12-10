@@ -44,7 +44,7 @@ read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_
 
 read_structure="${read1_cycles}T"
 
-if [ "$bc_cycles" -gt "0" ]; then
+if [ "$bc_cycles"+0 -gt "0" ]; then
 	read_structure="${read_structure}${bc_cycles}B"
 fi
 
@@ -88,9 +88,10 @@ do
 	fi
 		
 	echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}
-	if [ "${barcode_count}" -gt "1" ]; then
+	if [ "${barcode_count}" -gt "1" ] || [ $barcode_count -eq 0 ]; then
 		echo "L${i}_unassigned	N" >> ${multiplex_params}
-	fi	
+	fi
+
 	if $is_miseq ; then
 		perl -nle "print \"\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
 	else
@@ -99,13 +100,16 @@ do
 	#cat $barcode_params
 	#cat $multiplex_params
 	
-	java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar \
+	if [ $barcode_count -gt 0 ]; then
+
+  	    java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar \
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
 		LANE=${i} \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
+	fi
 
 	java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar \
 		NUM_PROCESSORS=$CPU_COUNT read_structure=$read_structure \
