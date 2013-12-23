@@ -37,20 +37,50 @@ if [ ! -x `which xmllint` ] ; then
 	echo "xmllint program is not found on the path, cannot continue."
 	exit 1
 fi
+num_reads=`echo 'xpath count(//Reads/Read)' | xmllint --shell "${run_path}/RunInfo.xml"  | sed -n 2p | awk -F ': ' '{print $2}'`
 
-read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+if  [ $num_reads -eq 0 ]; then
+	echo "Failed to find any reads in ${run_path}/RunInfo.xml"
+	exit 1
+fi
+
+bc_cycles=0
+bc2_cycles=0
+read2_cycles=0
+read1_cycles=0
+
+if [ $num_reads -ge 1 ]; then
+	read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+fi
+
+if [ $num_reads -ge 2 ]; then
+	bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+fi
+
+if [ $num_reads -eq 3 ]; then
+	read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+elif [ $num_reads -eq 4 ]; then
+	bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+	read2_cycles=`echo 'cat //Read[@Number="4"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+else
+	echo "Unhandled number of reads ${num_reads}"
+	exit 1
+fi
 
 read_structure="${read1_cycles}T"
 
-if [ "$bc_cycles"+0 -gt "0" ]; then
+if [  "${bc_cycles}"  -gt 0 ]; then
 	read_structure="${read_structure}${bc_cycles}B"
 fi
 
-if [ -n "${read2_cycles}" ] ; then
+if [  "${bc2_cycles}"  -gt 0 ]; then
+	read_structure="${read_structure}${bc2_cycles}B"	
+fi
+
+if [ "${read2_cycles}" -gt 0 ] ; then
 	read_structure="${read_structure}${read2_cycles}T"
 fi 
+
 echo "read structure: ${read_structure}"
 
 cd "${run_path}/fastq"
@@ -72,11 +102,19 @@ do
 	multiplex_params="${run_path}/lane${i}_multiplex_params.txt" 
 	barcode_params="${run_path}/lane${i}_barcode_params.txt"
 
-	echo 'barcode_sequence_1	barcode_name	library_name' > "${barcode_params}"
+	if [ $bc2_cycles -gt 0 ] ; then
+		echo 'barcode_sequence_1	barcode_sequence_2	barcode_name	library_name' > "${barcode_params}"
+	else
+		echo 'barcode_sequence_1	barcode_name	library_name' > "${barcode_params}"
+	fi
 	regex=
 	if $is_miseq ; then
-		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),.*$/"
-		perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
+		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),([^,]*),([GCAT]*),.*$/"
+		if [ $bc2_cycles -gt 0 ] ; then
+			perl -nle "print \"\$3\t\$5\t\$2+\$4\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
+		else
+			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
+		fi
 	else
 		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCAT]*),(?:[^,]*,){4}\w+\s*$/"
 		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" >> "${barcode_params}"
@@ -86,14 +124,26 @@ do
 	if [ $barcode_count -eq 0 ]; then
 		echo "Warning: Failed to find any barcodes in ${sample_sheet}" 1>&2
 	fi
-		
-	echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}
-	if [ "${barcode_count}" -gt "1" ] || [ $barcode_count -eq 0 ]; then
-		echo "L${i}_unassigned	N" >> ${multiplex_params}
+
+	if [ $bc2_cycles -gt 0 ] ; then
+		echo 'OUTPUT_PREFIX	BARCODE_1	BARCODE_2' > ${multiplex_params}		
+	else
+		echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}		
 	fi
 
+	#add an unassigned bin if there are any barcode cycles
+	if [ $bc2_cycles -gt 0 ]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
+		echo "L${i}_unassigned	N	N" >> ${multiplex_params}
+	elif [ $bc1_cycles -gt 0 ] ; then
+		echo "L${i}_unassigned	N" >> ${multiplex_params}	
+	fi
+	
 	if $is_miseq ; then
-		perl -nle "print \"\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
+		if [ $bc2_cycles -gt 0 ] ; then		
+			perl -nle "print \"\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
+		else 
+			perl -nle "print \"\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"		
+		fi
 	else
 		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" >> "${multiplex_params}"
 	fi
