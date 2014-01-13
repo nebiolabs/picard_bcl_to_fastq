@@ -44,7 +44,7 @@ if  [ $num_reads -eq 0 ]; then
 	exit 1
 fi
 
-bc_cycles=0
+bc1_cycles=0
 bc2_cycles=0
 read2_cycles=0
 read1_cycles=0
@@ -54,23 +54,22 @@ if [ $num_reads -ge 1 ]; then
 fi
 
 if [ $num_reads -ge 2 ]; then
-	bc_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-fi
+	bc1_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 
-if [ $num_reads -eq 3 ]; then
-	read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
-elif [ $num_reads -eq 4 ]; then
-	bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-	read2_cycles=`echo 'cat //Read[@Number="4"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
-else
-	echo "Unhandled number of reads ${num_reads}"
-	exit 1
+	if [ $num_reads -eq 3 ]; then
+		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+	elif [ $num_reads -eq 4 ]; then
+		bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+		read2_cycles=`echo 'cat //Read[@Number="4"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+	else
+		echo "Unhandled number of reads ${num_reads}"
+		exit 1
+	fi
 fi
-
 read_structure="${read1_cycles}T"
 
-if [  "${bc_cycles}"  -gt 0 ]; then
-	read_structure="${read_structure}${bc_cycles}B"
+if [  "${bc1_cycles}"  -gt 0 ]; then
+	read_structure="${read_structure}${bc1_cycles}B"
 fi
 
 if [  "${bc2_cycles}"  -gt 0 ]; then
@@ -125,16 +124,16 @@ do
 		echo "Warning: Failed to find any barcodes in ${sample_sheet}" 1>&2
 	fi
 
-	if [ $bc2_cycles -gt 0 ] ; then
+	if [ "${bc2_cycles}" -gt 0 ] ; then
 		echo 'OUTPUT_PREFIX	BARCODE_1	BARCODE_2' > ${multiplex_params}		
 	else
 		echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}		
 	fi
 
 	#add an unassigned bin if there are any barcode cycles
-	if [ $bc2_cycles -gt 0 ]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
+	if [ "${bc2_cycles}" -gt 0 ]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
 		echo "L${i}_unassigned	N	N" >> ${multiplex_params}
-	elif [ $bc1_cycles -gt 0 ] ; then
+	else
 		echo "L${i}_unassigned	N" >> ${multiplex_params}	
 	fi
 	
