@@ -3,7 +3,7 @@
 #argument: path to the samplesheet in a run folder
 
 #Path setup
-PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.97/
+PICARD_PATH=/mnt/ngswork/galaxy/sw/picard/
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 
 #demultiplexer settings
@@ -38,7 +38,8 @@ if [ ! -x `which xmllint` ] ; then
 	exit 1
 fi
 num_reads=`echo 'xpath count(//Reads/Read)' | xmllint --shell "${run_path}/RunInfo.xml"  | sed -n 2p | awk -F ': ' '{print $2}'`
-
+flowcell=`echo 'cat //Flowcell' | xmllint --shell RunInfo.xml | sed -n 3p | sed -r 's/<[^>]+>//g'`
+machine_name=`echo 'cat //Instrument' | xmllint --shell RunInfo.xml | sed -n 3p | sed -r 's/<[^>]+>//g'`
 if  [ $num_reads -eq 0 ]; then
 	echo "Failed to find any reads in ${run_path}/RunInfo.xml"
 	exit 1
@@ -108,7 +109,7 @@ do
 	fi
 	regex=
 	if $is_miseq ; then
-		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),([^,]*),([GCAT]*),.*$/"
+		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),([^,]*),(?:([GCAT]*),)?.*$/"
 		if [ $bc2_cycles -gt 0 ] ; then
 			perl -nle "print \"\$3\t\$5\t\$2+\$4\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
 		else
@@ -161,7 +162,12 @@ do
 	fi
 
 	java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar \
-		NUM_PROCESSORS=$CPU_COUNT read_structure=$read_structure \
-		RUN_BARCODE=$run_barcode LANE=${i} \
-		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" MULTIPLEX_PARAMS="${multiplex_params}"
+		NUM_PROCESSORS=$CPU_COUNT \
+		read_structure=$read_structure \
+		RUN_BARCODE=$run_barcode \
+		LANE=${i} \
+		MACHINE_NAME=$machine_name \
+		FLOWCELL_BARCODE=$flowcell \
+		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+		MULTIPLEX_PARAMS="${multiplex_params}"
 done
