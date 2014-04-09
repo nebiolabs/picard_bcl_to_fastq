@@ -3,7 +3,7 @@
 #argument: path to the samplesheet in a run folder
 
 #Path setup
-PICARD_PATH=/mnt/ngswork/galaxy/sw/picard/
+PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.111
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 
 #demultiplexer settings
@@ -57,7 +57,9 @@ fi
 if [ $num_reads -ge 2 ]; then
 	bc1_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
 
-	if [ $num_reads -eq 3 ]; then
+	if [ $num_reads -eq 2 ]; then
+		echo -n '' # no need to do anything here, already have the bc1 cycles
+	elif [ $num_reads -eq 3 ]; then
 		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
 	elif [ $num_reads -eq 4 ]; then
 		bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
