@@ -7,7 +7,7 @@ PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.111
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 
 #demultiplexer settings
-MAX_MISMATCHES=0
+MAX_MISMATCHES=2
 MAX_NO_CALLS=0
 MIN_MISMATCH_DELTA=2
 
@@ -76,7 +76,13 @@ if [  "${bc1_cycles}"  -gt 0 ]; then
 fi
 
 if [  "${bc2_cycles}"  -gt 0 ]; then
-	read_structure="${read_structure}${bc2_cycles}B"	
+	#if read 2s contain only Ns don't try to demultiplex on this... instead just generate a parallel fastq file
+	i5_indices_all_N=`cut -d',' -f 8 "${sample_sheet}" | grep -E '[GCATN]+' | uniq |  grep -Ei '^[N]+$' | wc -l`
+	if [ "${i5_indices_all_N}" -eq "1" ]; then
+		read_structure="${read_structure}${bc2_cycles}T"	
+	else
+		read_structure="${read_structure}${bc2_cycles}B"	
+	fi
 fi
 
 if [ "${read2_cycles}" -gt 0 ] ; then
@@ -111,14 +117,14 @@ do
 	fi
 	regex=
 	if $is_miseq ; then
-		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCAT]+),([^,]*),(?:([GCAT]*),)?.*$/"
+		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCATN]+)(?:,([^,]*),(?:([GCATN]*),?))?.*$/"
 		if [ $bc2_cycles -gt 0 ] ; then
 			perl -nle "print \"\$3\t\$5\t\$2+\$4\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
 		else
 			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
 		fi
 	else
-		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCAT]*),(?:[^,]*,){4}\w+\s*$/"
+		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
 		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" >> "${barcode_params}"
 	fi
 
