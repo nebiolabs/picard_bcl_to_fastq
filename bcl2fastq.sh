@@ -77,7 +77,7 @@ fi
 
 if [  "${bc2_cycles}"  -gt 0 ]; then
 	#if read 2s contain only Ns don't try to demultiplex on this... instead just generate a parallel fastq file
-	i5_indices_all_N=`cut -d',' -f 8 "${sample_sheet}" | grep -E '[GCATN]+' | uniq |  grep -Ei '^[N]+$' | wc -l`
+	i5_indices_all_N=`cut -d',' -f 8 "${sample_sheet}" | grep -E '[GCATN]+' | uniq |  grep -Ei '^\s*[N]+\s*$' | wc -l`
 	if [ "${i5_indices_all_N}" -eq "1" ]; then
 		read_structure="${read_structure}${bc2_cycles}T"	
 	else
