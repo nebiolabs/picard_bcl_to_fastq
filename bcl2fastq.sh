@@ -37,10 +37,10 @@ if [ ! -x `which xmllint` ] ; then
 	echo "xmllint program is not found on the path, cannot continue."
 	exit 1
 fi
-num_reads=`echo 'xpath count(//Reads/Read)' | xmllint --shell "${run_path}/RunInfo.xml"  | sed -n 2p | awk -F ': ' '{print $2}'`
-flowcell=`echo 'cat //Flowcell' | xmllint --shell RunInfo.xml | sed -n 3p | sed -r 's/<[^>]+>//g'`
-machine_name=`echo 'cat //Instrument' | xmllint --shell RunInfo.xml | sed -n 3p | sed -r 's/<[^>]+>//g'`
-if  [ $num_reads -eq 0 ]; then
+num_reads=`echo 'xpath count(//Reads/Read)' | xmllint --shell "${run_path}/RunInfo.xml"  | grep ':' | awk -F ': ' '{print $2}'`
+flowcell=`echo 'cat //Flowcell' | xmllint --shell "${run_path}/RunInfo.xml" | grep '<Flowcell' | sed -r 's/<[^>]+>//g'`
+machine_name=`echo 'cat //Instrument' | xmllint --shell "${run_path}/RunInfo.xml" | grep '<Instrument' | sed -r 's/<[^>]+>//g'`
+if  [ $num_reads -lt 1 ]; then
 	echo "Failed to find any reads in ${run_path}/RunInfo.xml"
 	exit 1
 fi
@@ -51,19 +51,19 @@ read2_cycles=0
 read1_cycles=0
 
 if [ $num_reads -ge 1 ]; then
-	read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+	read1_cycles=`echo 'cat //Read[@Number="1"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`	
 fi
 
 if [ $num_reads -ge 2 ]; then
-	bc1_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+	bc1_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`
 
 	if [ $num_reads -eq 2 ]; then
 		echo -n '' # no need to do anything here, already have the bc1 cycles
 	elif [ $num_reads -eq 3 ]; then
-		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`	
 	elif [ $num_reads -eq 4 ]; then
-		bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
-		read2_cycles=`echo 'cat //Read[@Number="4"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`	
+		bc2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`
+		read2_cycles=`echo 'cat //Read[@Number="4"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`	
 	else
 		echo "Unhandled number of reads ${num_reads}"
 		exit 1
@@ -95,7 +95,7 @@ cd "${run_path}/fastq"
 
 metrics_name="${MAX_NO_CALLS}nc_${MIN_MISMATCH_DELTA}mmd_${MAX_MISMATCHES}mis_bc_metrics.txt"
 
-lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell "${run_path}/RunInfo.xml"  | sed -n 3p | sed s/.*=// | sed s/\"//g`
+lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'LaneCount=' | sed s/.*=// | sed s/\"//g`
 if [ "$lanecount" -eq "1" ]; then
 	echo "Detected miseq format"
 	is_miseq=true
