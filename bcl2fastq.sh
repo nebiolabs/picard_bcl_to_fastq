@@ -7,7 +7,7 @@ PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.111
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 
 #demultiplexer settings
-MAX_MISMATCHES=2
+MAX_MISMATCHES=0
 MAX_NO_CALLS=0
 MIN_MISMATCH_DELTA=2
 
