@@ -25,6 +25,7 @@ It sniffs the run parameters (barcodes, read lengths, etc) from various files in
 ### Configuration:
 You will need to modify the path to picard variable to fit your environment.
 The defaults are for very strict bacode splitting (you may want to increase MAX_MISMATCHES and MAX_NO_CALLS).
+This scripts is configured to use 100G of RAM. If your machine is smaller, set the Xmx value appropriately.
 
 This script works by attempting to sniff run format, barcodes and platform from the files in the run directory.
 It works for all the GAII-x, HiSeq, and MiSeq runs I've encountered, but YMMV.
