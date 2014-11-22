@@ -7,12 +7,12 @@ PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.111
 CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
 
 #demultiplexer settings
-MAX_MISMATCHES=0
+MAX_MISMATCHES=1
 MAX_NO_CALLS=0
 MIN_MISMATCH_DELTA=2
 
 #Java settings
-JAVA_OPTS=-Xmx100g 
+JAVA_OPTS=-Xmx200g 
 
 echo "Running on ${CPU_COUNT} cpus"
 
@@ -99,6 +99,8 @@ lanecount=`echo 'cat //FlowcellLayout/@LaneCount' | xmllint -shell "${run_path}/
 if [ "$lanecount" -eq "1" ]; then
 	echo "Detected miseq format"
 	is_miseq=true
+elif [ "$lanecount" -le "4" ]; then
+	is_miseq=true
 else
 	is_miseq=false
 fi
@@ -148,9 +150,9 @@ do
 	
 	if $is_miseq ; then
 		if [ $bc2_cycles -gt 0 ] ; then		
-			perl -nle "print \"\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
+			perl -nle "print \"L${i}_\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
 		else 
-			perl -nle "print \"\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"		
+			perl -nle "print \"L${i}_\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"		
 		fi
 	else
 		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" >> "${multiplex_params}"
@@ -177,5 +179,6 @@ do
 		MACHINE_NAME=$machine_name \
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-		MULTIPLEX_PARAMS="${multiplex_params}"
+		MULTIPLEX_PARAMS="${multiplex_params}" \
+		MAX_READS_IN_RAM_PER_TILE=12000000 \
 done
