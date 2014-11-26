@@ -180,5 +180,5 @@ do
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=12000000 \
+		MAX_READS_IN_RAM_PER_TILE=12000000 
 done
