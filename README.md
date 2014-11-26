@@ -5,7 +5,7 @@ picard_bcl_to_fastq
 This is a wrapper script for [Picard's IlluminaBasecallsToFastq](http://picard.sourceforge.net/command-line-overview.shtml#IlluminaBasecallsToFastq). 
 
 ### What does it do?
-It sniffs the run parameters (barcodes, read lengths, etc) from various files in an Illumina GAIIx, MiSeq or HiSeq run folder and automates the Picard tools to produce fastq files. 
+It sniffs the run parameters (barcodes, read lengths, etc) from various files in an Illumina GAIIx, MiSeq, Nextseq or HiSeq run folder and automates the Picard tools to produce fastq files. 
 
 ### Why not use the default fastq generation on the instrument?
 - In case fastq generation on the instrument fails
@@ -25,7 +25,7 @@ It sniffs the run parameters (barcodes, read lengths, etc) from various files in
 ### Configuration:
 You will need to modify the path to picard variable to fit your environment.
 The defaults are for very strict bacode splitting (you may want to increase MAX_MISMATCHES and MAX_NO_CALLS).
-This scripts is configured to use 100G of RAM. If your machine is smaller, set the Xmx value appropriately.
+This script is configured to use 200G of RAM. If your machine is smaller, set the Xmx value appropriately.
 
 This script works by attempting to sniff run format, barcodes and platform from the files in the run directory.
 It works for all the GAII-x, HiSeq, and MiSeq runs I've encountered, but YMMV.
