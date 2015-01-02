@@ -56,9 +56,13 @@ fi
 
 if [ $num_reads -ge 2 ]; then
 	bc1_cycles=`echo 'cat //Read[@Number="2"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`
-
 	if [ $num_reads -eq 2 ]; then
-		echo -n '' # no need to do anything here, already have the bc1 cycles
+		if [ $bc1_cycles -gt 8 ]; then #read 2 is not a barcode, it's a second full read
+                        read2_cycles=$bc1_cycles
+                        bc1_cycles=0
+		else
+                        echo -n '' # no need to do anything here, already have the bc1 cycles
+		fi
 	elif [ $num_reads -eq 3 ]; then
 		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`	
 	elif [ $num_reads -eq 4 ]; then
