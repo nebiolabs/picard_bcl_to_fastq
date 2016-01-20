@@ -1,20 +1,26 @@
-#!/bin/sh
+#!/bin/bash
 
 #argument: path to the samplesheet in a run folder
 
 #Path setup
-PICARD_PATH=/mnt/ngswork/galaxy/sw/picard-tools-1.111
-CPU_COUNT=`grep -i processor /proc/cpuinfo | wc -l`
+PICARD_PATH=/mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1
+CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
 
 #demultiplexer settings
-MAX_MISMATCHES=1
+MAX_MISMATCHES=2
 MAX_NO_CALLS=0
 MIN_MISMATCH_DELTA=2
 
 #Java settings
-JAVA_OPTS=-Xmx200g 
+FREE_MEMORY_KB=`grep -i memavailable /proc/meminfo | sed -e's/[^0-9]//g'`
+if [ -z "$FREE_MEMORY_KB" ]; then #memavailable is only present in recent kernels, ~ free + cached
+	FREE_MEMORY_KB=`grep -i memfree /proc/meminfo | sed -e's/[^0-9]//g'`;
+	FREE_MEMORY_KB=$(( $FREE_MEMORY_KB + `grep -i '^cached:' /proc/meminfo | sed -e's/[^0-9]//g'` ))
+fi
+JAVA_OPTS="-Xmx${FREE_MEMORY_KB}k"
+ 
 
-echo "Running on ${CPU_COUNT} cpus"
+echo "Running on ${CPU_COUNT} cpus using ${FREE_MEMORY_KB}KB RAM"
 
 if [ $# -eq 0 ]; then
 	echo "specify the sample sheet"
@@ -26,11 +32,17 @@ echo "Sample sheet: ${sample_sheet}"
 run_path=`dirname "${sample_sheet}"`
 echo "Run path: ${run_path}"
 
-run_barcode=`echo "${run_path}" | rev | cut -f1 -d'/' | rev | cut -f2 -d'-'`
-echo "Barcode: ${run_barcode}"
+if [ $( wc -l "${sample_sheet}" | cut -f 1 -d ' ' ) -eq 0 ]; then
+	echo "fixing line ending from \r to \n"
+	sed -i 's/\r/\n/g' "${sample_sheet}"
+fi
 
-if [ ! -d "${run_path}/fastq" ] ; then
-	mkdir "${run_path}/fastq"
+run_barcode=`echo "${run_path}" | rev | cut -f1 -d'/' | tr '_' '-' | rev | cut -f2 -d'-'`
+echo "Run barcode: ${run_barcode}"
+
+output_path=$run_path 
+if [ ! -d "${output_path}/fastq" ] ; then
+	mkdir -p -m 777 "${output_path}/fastq"
 fi
 
 if [ ! -x `which xmllint` ] ; then
@@ -94,8 +106,8 @@ if [ "${read2_cycles}" -gt 0 ] ; then
 fi 
 
 echo "read structure: ${read_structure}"
-
-cd "${run_path}/fastq"
+echo "writing fastq files to : ${output_path}/fastq"
+pushd "${output_path}/fastq"
 
 metrics_name="${MAX_NO_CALLS}nc_${MIN_MISMATCH_DELTA}mmd_${MAX_MISMATCHES}mis_bc_metrics.txt"
 
@@ -161,12 +173,10 @@ do
 	else
 		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" >> "${multiplex_params}"
 	fi
-	#cat $barcode_params
-	#cat $multiplex_params
 	
 	if [ $barcode_count -gt 0 ]; then
 
-  	    java  $JAVA_OPTS -jar $PICARD_PATH/ExtractIlluminaBarcodes.jar \
+  	    java  $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
@@ -175,7 +185,7 @@ do
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
 
-	java  $JAVA_OPTS -jar $PICARD_PATH/IlluminaBasecallsToFastq.jar \
+	java  $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
 		NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode \
@@ -184,5 +194,6 @@ do
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=12000000 
+		MAX_READS_IN_RAM_PER_TILE=1500000 
 done
+popd
