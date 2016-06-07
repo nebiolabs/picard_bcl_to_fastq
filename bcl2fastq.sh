@@ -140,14 +140,14 @@ do
 	regex=
 	if $is_miseq ; then
 		regex="/^([^,]+)(?:[^,]*,){3,4}([^,]+),([GCATN]+)(?:,([^,]*),(?:([GCATN]*),?))?.*$/"
-			perl -nle "print \"\$3\t\$5\t\$2+\$4\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
 		if [[ $bc2_cycles -gt 0 ]] ; then
+			perl -nle "print \"\$3\t\$5\t\$2+\$4\t\$1\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 		else
-			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" >> "${barcode_params}"
+			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 		fi
 	else
 		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
-		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" >> "${barcode_params}"
+		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 	fi
 
 	barcode_count=$((`wc -l "${barcode_params}" | cut -d ' ' -f1` - 1))
@@ -169,13 +169,13 @@ do
 	fi
 	
 	if $is_miseq ; then
-			perl -nle "print \"L${i}_\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"
 		if [[ $bc2_cycles -gt 0 ]] ; then		
+			perl -nle "print \"L${i}_\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 		else 
-			perl -nle "print \"L${i}_\$1\t\$3\" if ${regex}" "${sample_sheet}" >> "${multiplex_params}"		
+			perl -nle "print \"L${i}_\$1\t\$3\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 		fi
 	else
-		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" >> "${multiplex_params}"
+		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 	fi
 	
 	if [[ $barcode_count -gt 0 ]]; then
