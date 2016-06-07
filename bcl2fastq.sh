@@ -99,7 +99,7 @@ if [[  $bc2_cycles  -gt 0 ]]; then
 	#if read 2s contain only Ns don't try to demultiplex on this... instead just generate a parallel fastq file
 	i5_indices_all_N=`cut -d',' -f 8 "${sample_sheet}" | grep -E '[GCATN]+' | uniq |  grep -Ei '^\s*[N]+\s*$' | wc -l`
 	if [[ $i5_indices_all_N -eq 1 ]]; then
-		read_structure="${read_structure}${bc2_cycles}T"	
+		read_structure="${read_structure}${bc2_cycles}T"
 	else
 		read_structure="${read_structure}${bc2_cycles}B"	
 	fi
@@ -155,18 +155,17 @@ do
 		echo "Warning: Failed to find any barcodes in ${sample_sheet}" 1>&2
 	fi
 
-	if [ "${bc2_cycles}" -gt 0 ] ; then
-		echo 'OUTPUT_PREFIX	BARCODE_1	BARCODE_2' > ${multiplex_params}		
 	if [[ $bc2_cycles -gt 0 ]] ; then
+		echo 'OUTPUT_PREFIX	BARCODE_1	BARCODE_2' > "${multiplex_params}"
 	else
-		echo 'OUTPUT_PREFIX	BARCODE_1' > ${multiplex_params}		
+		echo 'OUTPUT_PREFIX	BARCODE_1' > "${multiplex_params}"
 	fi
 
 	#add an unassigned bin if there are any barcode cycles
 	if [[ $bc2_cycles -gt 0 ]]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
 		echo "L${i}_unassigned	N	N" >> "${multiplex_params}"
 	else
-		echo "L${i}_unassigned	N" >> ${multiplex_params}	
+		echo "L${i}_unassigned	N" >> "${multiplex_params}"
 	fi
 	
 	if $is_miseq ; then
