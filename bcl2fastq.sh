@@ -77,7 +77,7 @@ if [[ $num_reads -ge 2 ]]; then
 		fi
 	elif [[ $num_reads -eq 3 ]]; then
 		read2_cycles=`echo 'cat //Read[@Number="3"]/@NumCycles' | xmllint -shell "${run_path}/RunInfo.xml"  | grep 'NumCycles=' | sed s/.*=// | sed s/\"//g`	
-		if [[ $read_cycles -le 12 ]]; then #read3 is a barcode - maybe better to look at the isindexread attr...
+		if [[ $read2_cycles -le 12 ]]; then #read3 is a barcode - maybe better to look at the isindexread attr...
 		  bc2_cycles=$read2_cycles
 		  read2_cycles=0
 		fi
