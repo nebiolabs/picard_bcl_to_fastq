@@ -2,7 +2,7 @@ picard_bcl_to_fastq
 =======================
 
 ### What is this?
-This is a wrapper script for [Picard's IlluminaBasecallsToFastq](http://picard.sourceforge.net/command-line-overview.shtml#IlluminaBasecallsToFastq). 
+This is a wrapper script for [Picard's IlluminaBasecallsToFastq](https://broadinstitute.github.io/picard/command-line-overview.html#IlluminaBasecallsToFastq). 
 
 ### What does it do?
 It sniffs the run parameters (barcodes, read lengths, etc) from various files in an Illumina GAIIx, MiSeq, Nextseq or HiSeq run folder and automates the Picard tools to produce fastq files. 
