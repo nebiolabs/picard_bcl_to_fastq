@@ -4,7 +4,7 @@
 
 #Path setup
 PICARD_PATH=/mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1
-CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
+#CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
 
 #demultiplexer settings
 MAX_MISMATCHES=2
@@ -189,15 +189,18 @@ do
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
 
+	#set first tile for debuging and changed MAX.....PER_TILE to 300000 less
+	#set cpu count to 8 instead of sniffing out cpu
 	java  $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-		NUM_PROCESSORS=$CPU_COUNT \
+		NUM_PROCESSORS=8 \
 		read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode \
 		LANE=${i} \
+		FIRST_TILE=1 \
 		MACHINE_NAME=$machine_name \
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=1500000 
+		MAX_READS_IN_RAM_PER_TILE=1200000
 done
 popd
