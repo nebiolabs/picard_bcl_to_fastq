@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#argument: path to the samplesheet in a run folder
+#argument1 : path to the samplesheet in a run folder
+#argument2 : user email
 
 #Path setup
 PICARD_PATH=/mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1
@@ -232,4 +233,4 @@ done
 
 popd
 
-qsub -hold_jid TileProcess -N combinefastq -b y -pe smp 8 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh zulch@neb.com
+qsub -hold_jid TileProcess -N combinefastq -b y -pe smp 8 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
