@@ -4,7 +4,8 @@
 
 #Path setup
 PICARD_PATH=/mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1
-CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
+#CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
+CPU_COUNT=8
 
 #demultiplexer settings
 MAX_MISMATCHES=2
@@ -18,7 +19,7 @@ if [[ -z "$FREE_MEMORY_KB" ]]; then #memavailable is only present in recent kern
 	FREE_MEMORY_KB=$(( $FREE_MEMORY_KB + `grep -i '^cached:' /proc/meminfo | sed -e's/[^0-9]//g'` ))
 fi
 JAVA_OPTS="-Xmx${FREE_MEMORY_KB}k"
- 
+JAVA_PATH="/mnt/galaxy/data/galaxy/sw/jre1.8.0_92/bin"
 
 echo "Running on ${CPU_COUNT} cpus using ${FREE_MEMORY_KB}KB RAM"
 
@@ -180,7 +181,7 @@ do
 	
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	    java  $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 8 -N lanebarcode${i} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
@@ -188,16 +189,47 @@ do
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
+        if [ $i == 1 ] || [ $i == 2 ] ; then
+          FIRST_TILE=11101
+        elif [ $i == 3 ] || [ $i == 4 ] ; then
+          FIRST_TILE=11401
+        fi
 
-	java  $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-		NUM_PROCESSORS=$CPU_COUNT \
+        for m in {1..18}
+          do
+        if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+       	  mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+        fi
+
+        pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+
+
+	qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 8 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+		NUM_PROCESSORS=8 \
 		read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode \
 		LANE=${i} \
+		FIRST_TILE= $FIRST_TILE \
+		TILE_LIMIT=12 \
 		MACHINE_NAME=$machine_name \
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=1500000 
+		MAX_READS_IN_RAM_PER_TILE=1200000
+
+
+          if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
+            ((FIRST_TILE+=800))
+          elif [ "$m" == 9 ] ; then
+            ((FIRST_TILE+=7800))
+          else
+            ((FIRST_TILE+=100))
+          fi
+          popd
+
+        done
 done
+
 popd
+
+qsub -hold_jid TileProcess -N combinefastq -b y -pe smp 8 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh zulch@neb.com
