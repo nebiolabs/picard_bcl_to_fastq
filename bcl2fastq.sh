@@ -233,6 +233,5 @@ done
 
 popd
 
-qsub -hold_jid TileProcess -N combinefastq -b y -pe smp 8 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
+qsub -hold_jid TileProcess -N combinefastq ${run_barcode} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
 
-qsub -hold_jid combinefastq -N process_and_notify -b y -pe smp 1 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/miseq_uploader/SeqShepherd/processing_complete_status.rb ${output_path} Bcl2Fastq
