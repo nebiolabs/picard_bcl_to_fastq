@@ -14,11 +14,8 @@ MAX_NO_CALLS=0
 MIN_MISMATCH_DELTA=2
 
 #Java settings
-FREE_MEMORY_KB=`grep -i memavailable /proc/meminfo | sed -e's/[^0-9]//g'`
-if [[ -z "$FREE_MEMORY_KB" ]]; then #memavailable is only present in recent kernels, ~ free + cached
-	FREE_MEMORY_KB=`grep -i memfree /proc/meminfo | sed -e's/[^0-9]//g'`;
-	FREE_MEMORY_KB=$(( $FREE_MEMORY_KB + `grep -i '^cached:' /proc/meminfo | sed -e's/[^0-9]//g'` ))
-fi
+FREE_MEMORY_KB=$(($NSLOTS*4000000))
+
 JAVA_OPTS="-Xmx${FREE_MEMORY_KB}k"
 JAVA_PATH="/mnt/galaxy/data/galaxy/sw/jre1.8.0_92/bin"
 
