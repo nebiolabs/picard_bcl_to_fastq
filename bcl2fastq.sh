@@ -182,7 +182,7 @@ do
 	
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	   qsub -b y -pe smp 8 -N lanebarcode${i} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 8 -N lanebarcode${i} -m abe -M ${2} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
@@ -205,7 +205,7 @@ do
         pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
 
-	qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 8 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+	qsub -hold_jid lanebarcode${i} -N TileProcess -m abe -M ${2} -b y -pe smp 8 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
 		NUM_PROCESSORS=8 \
 		read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode \
