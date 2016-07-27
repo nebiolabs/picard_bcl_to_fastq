@@ -211,7 +211,7 @@ do
 		RUN_BARCODE=$run_barcode \
 		LANE=${i} \
 		FIRST_TILE= $FIRST_TILE \
-		TILE_LIMIT=12 \
+		TILE_LIMIT=1 \
 		MACHINE_NAME=$machine_name \
 		FLOWCELL_BARCODE=$flowcell \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
@@ -233,5 +233,5 @@ done
 
 popd
 
-qsub -hold_jid TileProcess -N combinefastq ${run_barcode} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
+qsub -hold_jid TileProcess -N combinefastq_${run_barcode} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
 
