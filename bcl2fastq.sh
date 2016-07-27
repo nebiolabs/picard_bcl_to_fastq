@@ -233,5 +233,6 @@ done
 
 popd
 
-qsub -hold_jid TileProcess -N combinefastq_${run_barcode} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
-
+pushd "${output_path}"
+ qsub -hold_jid TileProcess -N combinefastq_${flowcell} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
+popd
