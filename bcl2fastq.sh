@@ -196,7 +196,7 @@ do
         for m in {1..18}
           do
 
-        for m in {1..2}
+        for z in {1..2}
           do
 
           if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
@@ -219,9 +219,9 @@ do
             MAX_READS_IN_RAM_PER_TILE=1200000
             popd
 
-              if [ "$m" == 1 ] ; then
+              if [ "$z" == 1 ] ; then
                 ((FIRST_TILE+=6))
-              elif [ "$m" == 2 ] ; then
+              elif [ "$z" == 2 ] ; then
                 ((FIRST_TILE-=6))
               fi
 
