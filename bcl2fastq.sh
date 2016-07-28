@@ -210,7 +210,7 @@ do
             RUN_BARCODE=$run_barcode \
             LANE=${i} \
             FIRST_TILE=$FIRST_TILE \
-            TILE_LIMIT=12 \
+            TILE_LIMIT=6 \
             MACHINE_NAME=$machine_name \
             FLOWCELL_BARCODE=$flowcell \
             BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
