@@ -202,7 +202,7 @@ do
         pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
 
-	qsub -hold_jid lanebarcode${i} -N TileProcess -m abe -M ${2} -b y -pe smp 2 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+	qsub -hold_jid lanebarcode${i} -N TileProcess -m ae -M ${2} -b y -pe smp 8 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
 		NUM_PROCESSORS=8 \
 		read_structure=$read_structure \
 		RUN_BARCODE=$run_barcode \
