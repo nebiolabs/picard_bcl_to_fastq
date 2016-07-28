@@ -179,7 +179,7 @@ do
 	
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	   qsub -b y -pe smp 8 -N lanebarcode${i} -m abe -M ${2} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 10 -N lanebarcode${i} -m abe -M ${2} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
@@ -199,50 +199,48 @@ do
        	  mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
         fi
 
-        pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+        for m in {1..2}
+          do
+
+            pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+
+        qsub -hold_jid lanebarcode${i} -N TileProcess -m ae -M ${2} -b y -pe smp 5 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+            NUM_PROCESSORS=$NSLOTS \
+            read_structure=$read_structure \
+            RUN_BARCODE=$run_barcode \
+            LANE=${i} \
+            FIRST_TILE=$FIRST_TILE \
+            TILE_LIMIT=12 \
+            MACHINE_NAME=$machine_name \
+            FLOWCELL_BARCODE=$flowcell \
+            BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+            MULTIPLEX_PARAMS="${multiplex_params}" \
+            MAX_READS_IN_RAM_PER_TILE=1200000
+            popd
+
+              if [ "$m" == 1 ] ; then
+                ((FIRST_TILE+=6))
+              elif [ "$m" == 2 ] ; then
+                ((FIRST_TILE-=6))
+              fi
+
+          done
 
 
-	qsub -hold_jid lanebarcode${i} -N TileProcess -m ae -M ${2} -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-		NUM_PROCESSORS=4 \
-		read_structure=$read_structure \
-		RUN_BARCODE=$run_barcode \
-		LANE=${i} \
-		FIRST_TILE= $FIRST_TILE \
-		TILE_LIMIT=6 \
-		MACHINE_NAME=$machine_name \
-		FLOWCELL_BARCODE=$flowcell \
-		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=1200000
+              if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
+                ((FIRST_TILE+=800))
+              elif [ "$m" == 9 ] ; then
+                ((FIRST_TILE+=7800))
+              else
+                ((FIRST_TILE+=100))
+              fi
 
-	qsub -hold_jid lanebarcode${i} -N TileProcess -m ae -M ${2} -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-		NUM_PROCESSORS=4 \
-		read_structure=$read_structure \
-		RUN_BARCODE=$run_barcode \
-		LANE=${i} \
-		FIRST_TILE=$(($FIRST_TILE+6)) \
-		TILE_LIMIT=12 \
-		MACHINE_NAME=$machine_name \
-		FLOWCELL_BARCODE=$flowcell \
-		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-		MULTIPLEX_PARAMS="${multiplex_params}" \
-		MAX_READS_IN_RAM_PER_TILE=1200000
-
-
-          if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
-            ((FIRST_TILE+=800))
-          elif [ "$m" == 9 ] ; then
-            ((FIRST_TILE+=7800))
-          else
-            ((FIRST_TILE+=100))
-          fi
-          popd
 
         done
 done
 
 popd
 
-pushd "${output_path}"
- qsub -hold_jid TileProcess -N combinefastq_${flowcell} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
-popd
+#pushd "${output_path}"
+# qsub -hold_jid TileProcess -N combinefastq_${flowcell} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
+#popd
