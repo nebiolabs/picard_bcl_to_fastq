@@ -195,12 +195,13 @@ do
 
         for m in {1..18}
           do
-        if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-       	  mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-        fi
 
         for m in {1..2}
           do
+
+          if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+       	    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+          fi
 
             pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
