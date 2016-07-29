@@ -179,7 +179,7 @@ do
 	
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	   qsub -b y -pe smp 10 -N lanebarcode${i} -m abe -M ${2} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 10 -N lanebarcode${i} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
@@ -244,6 +244,6 @@ popd
 
 pushd "${output_path}"
  qsub -hold_jid TileProcess -N combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/copy_combine_fastqs.sh ${2}
- qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh ${2} ${flowcell}
+ qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh "${2}" ${flowcell}
 popd
 
