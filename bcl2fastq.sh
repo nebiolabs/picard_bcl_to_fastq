@@ -205,7 +205,7 @@ do
 
             pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
-        qsub -hold_jid lanebarcode${i} -N TileProcess -m ae -M ${2} -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+        qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
             NUM_PROCESSORS=$NSLOTS \
             read_structure=$read_structure \
             RUN_BARCODE=$run_barcode \
@@ -242,6 +242,8 @@ done
 
 popd
 
-#pushd "${output_path}"
-# qsub -hold_jid TileProcess -N combinefastq_${flowcell} -m abe -M ${2} -b y -pe smp 10 -cwd -S /bin/bash /mnt/galaxy/tmp/recent_nextseq_runs/copy_combine_fastqs.sh ${2}
-#popd
+pushd "${output_path}"
+ qsub -hold_jid TileProcess -N combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/copy_combine_fastqs.sh ${2}
+popd
+
+qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh ${2} ${flowcell}
