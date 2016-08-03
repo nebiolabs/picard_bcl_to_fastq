@@ -244,6 +244,6 @@ popd
 
 pushd "${output_path}"
  qsub -hold_jid TileProcess -N combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/copy_combine_fastq.sh ${2}
- qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh "${2}" ${flowcell}
+ qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 1 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh "${2}" ${flowcell}
 popd
 
