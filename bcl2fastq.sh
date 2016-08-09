@@ -193,51 +193,99 @@ do
           FIRST_TILE=11401
         fi
 
-        for m in {1..18}
-          do
 
-        for z in {1..2}
-          do
+        if [ $3 == 2 ]; then
+            for m in {1..18}
+              do
 
-          if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-       	    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-          fi
+                for z in {1..2}
+                  do
 
-            pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+                  fi
 
-        qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-            NUM_PROCESSORS=$NSLOTS \
-            read_structure=$read_structure \
-            RUN_BARCODE=$run_barcode \
-            LANE=${i} \
-            FIRST_TILE=$FIRST_TILE \
-            TILE_LIMIT=6 \
-            MACHINE_NAME=$machine_name \
-            FLOWCELL_BARCODE=$flowcell \
-            BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-            MULTIPLEX_PARAMS="${multiplex_params}" \
-            MAX_READS_IN_RAM_PER_TILE=1200000
-            popd
+                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
-              if [ "$z" == 1 ] ; then
-                ((FIRST_TILE+=6))
-              elif [ "$z" == 2 ] ; then
-                ((FIRST_TILE-=6))
-              fi
+                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+                    NUM_PROCESSORS=$NSLOTS \
+                    read_structure=$read_structure \
+                    RUN_BARCODE=$run_barcode \
+                    LANE=${i} \
+                    FIRST_TILE=$FIRST_TILE \
+                    TILE_LIMIT=6 \
+                    MACHINE_NAME=$machine_name \
+                    FLOWCELL_BARCODE=$flowcell \
+                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+                    MULTIPLEX_PARAMS="${multiplex_params}" \
+                    MAX_READS_IN_RAM_PER_TILE=1200000
+                    popd
 
-          done
+                      if [ "$z" == 1 ] ; then
+                        ((FIRST_TILE+=6))
+                      elif [ "$z" == 2 ] ; then
+                        ((FIRST_TILE-=6))
+                      fi
 
-
-              if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
-                ((FIRST_TILE+=800))
-              elif [ "$m" == 9 ] ; then
-                ((FIRST_TILE+=7800))
-              else
-                ((FIRST_TILE+=100))
-              fi
+                  done
 
 
-        done
+                  if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
+                    ((FIRST_TILE+=800))
+                  elif [ "$m" == 9 ] ; then
+                    ((FIRST_TILE+=7800))
+                  else
+                    ((FIRST_TILE+=100))
+                  fi
+
+
+            done
+        elif [ "${3}" == 9 ] ; then
+           for m in {1..6}
+              do
+
+                for z in {1..2}
+                  do
+
+                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+                  fi
+
+                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+
+                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+                    NUM_PROCESSORS=$NSLOTS \
+                    read_structure=$read_structure \
+                    RUN_BARCODE=$run_barcode \
+                    LANE=${i} \
+                    FIRST_TILE=$FIRST_TILE \
+                    TILE_LIMIT=6 \
+                    MACHINE_NAME=$machine_name \
+                    FLOWCELL_BARCODE=$flowcell \
+                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+                    MULTIPLEX_PARAMS="${multiplex_params}" \
+                    MAX_READS_IN_RAM_PER_TILE=1200000
+                    popd
+
+                      if [ "$z" == 1 ] ; then
+                        ((FIRST_TILE+=6))
+                      elif [ "$z" == 2 ] ; then
+                        ((FIRST_TILE-=6))
+                      fi
+
+                  done
+
+
+                  if [ "$m" == 2 ] || [ "$m" == 3 ] || [ "$m" == 5 ] || [ "$m" == 6 ] ; then
+                    ((FIRST_TILE+=100))
+                  elif [ "$m" == 4 ] ; then
+                    ((FIRST_TILE+=9800))
+                  fi
+
+
+            done
+
+        fi
 done
 
 popd
