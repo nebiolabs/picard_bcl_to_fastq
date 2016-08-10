@@ -285,6 +285,38 @@ do
 
             done
 
+        elif [ "${3}" == 3 ] ; then
+
+          FIRST_TILE=1101
+          for j in {1..2}
+            do
+              for o in {1..19}
+                do
+                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+                  fi
+
+                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+
+                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+                    NUM_PROCESSORS=$NSLOTS \
+                    read_structure=$read_structure \
+                    RUN_BARCODE=$run_barcode \
+                    LANE=${i} \
+                    FIRST_TILE=$FIRST_TILE \
+                    TILE_LIMIT=1 \
+                    MACHINE_NAME=$machine_name \
+                    FLOWCELL_BARCODE=$flowcell \
+                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+                    MULTIPLEX_PARAMS="${multiplex_params}" \
+                    MAX_READS_IN_RAM_PER_TILE=1200000
+                    popd
+
+                    ((FIRST_TILE+=1))
+              done
+              ((FIRST_TILE+=981))
+          done
+
         fi
 done
 
