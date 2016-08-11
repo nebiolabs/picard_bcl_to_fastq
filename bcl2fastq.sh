@@ -187,6 +187,8 @@ do
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
+
+
         if [ $i == 1 ] || [ $i == 2 ] ; then
           FIRST_TILE=11101
         elif [ $i == 3 ] || [ $i == 4 ] ; then
@@ -194,7 +196,7 @@ do
         fi
 
 
-        if [ "${3}" == 2 ]; then
+        if [ "${3}" == 2 ]; then #NextSeq HighOutput
             for m in {1..18}
               do
 
@@ -240,7 +242,7 @@ do
 
 
             done
-        elif [ "${3}" == 1 ] ; then
+        elif [ "${3}" == 1 ] ; then #NextSeq MidOutput
            for m in {1..6}
               do
 
@@ -285,7 +287,7 @@ do
 
             done
 
-        elif [ "${3}" == 3 ] ; then
+        elif [ "${3}" == 3 ] ; then #MiSeq run
 
           FIRST_TILE=1101
           for j in {1..2}
@@ -324,6 +326,7 @@ popd
 
 pushd "${output_path}"
  qsub -hold_jid TileProcess -N combinefastq_${flowcell} -b y -pe smp 10 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/copy_combine_fastq.sh
+ qsub -hold_jid combinefastq_${flowcell} -N link_fastq -b y -pe smp 1 -cwd -S /bin/bash /home/galaxy/.rbenv/shims/ruby /mnt/bioinfo/prg/seq-shepherd/miseq_uploader/SeqShepherd/link_fastq_to_user_folders.rb "${run_path}"
  qsub -hold_jid combinefastq_${flowcell} -b y -pe smp 1 -cwd -S /bin/bash /mnt/bioinfo/prg/seq-shepherd/picard_bcl_to_fastq/send_email.sh "${2}" ${flowcell}
 popd
 
