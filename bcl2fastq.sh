@@ -124,10 +124,49 @@ else
 	is_miseq=false
 fi
 
-	echo processing barcodes
 
-	multiplex_params="${run_path}/multiplex_params.txt"
-	barcode_params="${run_path}/barcode_params.txt"
+    pushd "${run_path}/Data/Intensities/BaseCalls"
+    TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
+    popd
+
+    TILE_ARRAY=()
+    for item in ${TILES[*]}
+      do
+        TILE_ARRAY+=(${item})
+    done
+
+    SORTED_TILE_ARRAY=( $(
+        for el in "${TILE_ARRAY[@]}"
+        do
+            echo "$el"
+        done | sort) )
+
+    ARRAY_ONE=()
+    ARRAY_TWO=()
+
+    for m in "${!SORTED_TILE_ARRAY[@]}"; do
+       if (( (( $m )) % 6 == 0 ))
+         then
+         FIRST_TILE=${SORTED_TILE_ARRAY[$m]}
+          if [[ $FIRST_TILE == *"1_"* ]]
+            then
+              ARRAY_ONE+=(${FIRST_TILE##*_})
+          elif [[ $FIRST_TILE == *"3_"* ]]
+            then
+              ARRAY_TWO+=(${FIRST_TILE##*_})
+          fi
+       fi
+    done
+
+
+
+
+for i in `seq 1 ${lanecount}`
+do
+	echo processing lane ${i}
+
+	multiplex_params="${run_path}/lane${i}_multiplex_params.txt"
+	barcode_params="${run_path}/lane${i}_barcode_params.txt"
 
 	if [[ $bc2_cycles -gt 0 ]] ; then
 		echo 'barcode_sequence_1	barcode_sequence_2	barcode_name	library_name' > "${barcode_params}"
@@ -143,7 +182,7 @@ fi
 			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 		fi
 	else
-		regex="/^(?:[^,]+),([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
+		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
 		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 	fi
 
@@ -160,74 +199,72 @@ fi
 
 	#add an unassigned bin if there are any barcode cycles
 	if [[ $bc2_cycles -gt 0 ]]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
-		echo "unassigned	N	N" >> "${multiplex_params}"
+		echo "L${i}_unassigned	N	N" >> "${multiplex_params}"
 	else
-		echo "unassigned	N" >> "${multiplex_params}"
+		echo "L${i}_unassigned	N" >> "${multiplex_params}"
 	fi
-	
+
 	if $is_miseq ; then
-		if [[ $bc2_cycles -gt 0 ]] ; then		
-			perl -nle "print \"$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
-		else 
-			perl -nle "print \"$1\t\$3\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+		if [[ $bc2_cycles -gt 0 ]] ; then
+			perl -nle "print \"L${i}_\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+		else
+			perl -nle "print \"L${i}_\$1\t\$3\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 		fi
 	else
-		perl -nle "print \"$1\t\$2\" if ${regex} " "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 	fi
-	
+
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	   qsub -b y -pe smp 8 -N lanebarcode -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 8 -N lanebarcode${i} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
+		LANE=${i} \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-		METRICS_FILE="${metrics_name}" BARCODE_FILE="${barcode_params}"
+		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
 
-            pushd "${run_path}/Data/Intensities/BaseCalls"
-            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
+     PICARD ()
+          {
+          if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
+            mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+          fi
+
+            pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+
+        qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+            NUM_PROCESSORS=$NSLOTS \
+            read_structure=$read_structure \
+            RUN_BARCODE=$run_barcode \
+            LANE=$1 \
+            FIRST_TILE=$2 \
+            TILE_LIMIT=6 \
+            MACHINE_NAME=$machine_name \
+            FLOWCELL_BARCODE=$flowcell \
+            BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+            MULTIPLEX_PARAMS="${multiplex_params}" \
+            MAX_READS_IN_RAM_PER_TILE=1200000
             popd
+            }
 
-            TILE_ARRAY=()
-            for item in ${TILES[*]}
-              do
-                TILE_ARRAY+=(${item})
-            done
 
-            SORTED_TILE_ARRAY=( $(
-                for el in "${TILE_ARRAY[@]}"
-                do
-                    echo "$el"
-                done | sort) )
 
-            for p in "${!SORTED_TILE_ARRAY[@]}"; do
+        if [ $i == 1 ] || [ $i == 2 ] ; then
+          for h in "${!ARRAY_ONE[@]}"; do
+            FIRST_TILE=${ARRAY_ONE[$h]}
+            PICARD ${i} ${FIRST_TILE}
+          done
 
-               if (( (( $p )) % 6 == 0 ))
-                 then
-                 FIRST_TILE=${SORTED_TILE_ARRAY[$p]}
+        elif [ $i == 3 ] || [ $i == 4 ] ; then
+          for h in "${!ARRAY_TWO[@]}"; do
+            FIRST_TILE=${ARRAY_TWO[$h]}
+            PICARD ${i} ${FIRST_TILE}
+          done
+        fi
 
-                 if [[ ! -d "${output_path}/fastq/${FIRST_TILE}" ]] ; then
-                    mkdir -p -m 777 "${output_path}/fastq/${FIRST_TILE}"
-                 fi
 
-                 pushd "${output_path}/fastq/${FIRST_TILE}"
-
-                    qsub -hold_jid lanebarcode -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-                        NUM_PROCESSORS=$NSLOTS \
-                        read_structure=$read_structure \
-                        RUN_BARCODE=$run_barcode \
-                        FIRST_TILE=1_11101 \
-                        TILE_LIMIT=6 \
-                        MACHINE_NAME=$machine_name \
-                        FLOWCELL_BARCODE=$flowcell \
-                        BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-                        MULTIPLEX_PARAMS="${multiplex_params}" \
-                        MAX_READS_IN_RAM_PER_TILE=1200000
-                 popd
-
-               fi
-            done
+done
 
 popd
 
