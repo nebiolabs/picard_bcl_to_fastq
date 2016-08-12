@@ -124,12 +124,10 @@ else
 	is_miseq=false
 fi
 
-for i in `seq 1 ${lanecount}`
-do
-	echo processing lane ${i} 
+	echo processing barcodes
 
-	multiplex_params="${run_path}/lane${i}_multiplex_params.txt" 
-	barcode_params="${run_path}/lane${i}_barcode_params.txt"
+	multiplex_params="${run_path}/multiplex_params.txt"
+	barcode_params="${run_path}/barcode_params.txt"
 
 	if [[ $bc2_cycles -gt 0 ]] ; then
 		echo 'barcode_sequence_1	barcode_sequence_2	barcode_name	library_name' > "${barcode_params}"
@@ -145,7 +143,7 @@ do
 			perl -nle "print \"\$3\t\$2\t\$1\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 		fi
 	else
-		regex="/^(?:[^,]+),${i},([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
+		regex="/^(?:[^,]+),([^,]+),(?:[^,]*,)([GCATN]*),(?:[^,]*,){4}\w+\s*$/"
 		perl -nle "print ((\$2 || 'N').\"\t\$1\t\$1\") if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${barcode_params}"
 	fi
 
@@ -162,165 +160,74 @@ do
 
 	#add an unassigned bin if there are any barcode cycles
 	if [[ $bc2_cycles -gt 0 ]]; then #assumes if bc2 cycles is greater than 0 , there must also be bc1 cycles
-		echo "L${i}_unassigned	N	N" >> "${multiplex_params}"
+		echo "unassigned	N	N" >> "${multiplex_params}"
 	else
-		echo "L${i}_unassigned	N" >> "${multiplex_params}"
+		echo "unassigned	N" >> "${multiplex_params}"
 	fi
 	
 	if $is_miseq ; then
 		if [[ $bc2_cycles -gt 0 ]] ; then		
-			perl -nle "print \"L${i}_\$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+			perl -nle "print \"$1\t\$3\t\$5\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 		else 
-			perl -nle "print \"L${i}_\$1\t\$3\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+			perl -nle "print \"$1\t\$3\" if ${regex}" "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 		fi
 	else
-		perl -nle "print \"L${i}_\$1\t\$2\" if ${regex} " "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
+		perl -nle "print \"$1\t\$2\" if ${regex} " "${sample_sheet}" | tr ' ' '-' >> "${multiplex_params}"
 	fi
 	
 	if [[ $barcode_count -gt 0 ]]; then
 
-  	   qsub -b y -pe smp 8 -N lanebarcode${i} -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
+  	   qsub -b y -pe smp 8 -N lanebarcode -cwd $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar ExtractIlluminaBarcodes\
 		MAX_NO_CALLS=$MAX_NO_CALLS MIN_MISMATCH_DELTA=$MIN_MISMATCH_DELTA \
 		MAX_MISMATCHES=$MAX_MISMATCHES NUM_PROCESSORS=$CPU_COUNT \
 		read_structure=$read_structure \
-		LANE=${i} \
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
+		METRICS_FILE="${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
 
+            pushd "${run_path}/Data/Intensities/BaseCalls"
+            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
+            popd
 
-        if [ $i == 1 ] || [ $i == 2 ] ; then
-          FIRST_TILE=11101
-        elif [ $i == 3 ] || [ $i == 4 ] ; then
-          FIRST_TILE=11401
-        fi
-
-
-        if [ "${3}" == 2 ]; then #NextSeq HighOutput
-            for m in {1..18}
+            TILE_ARRAY=()
+            for item in ${TILES[*]}
               do
-
-                for z in {1..2}
-                  do
-
-                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-                  fi
-
-                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-
-                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-                    NUM_PROCESSORS=$NSLOTS \
-                    read_structure=$read_structure \
-                    RUN_BARCODE=$run_barcode \
-                    LANE=${i} \
-                    FIRST_TILE=$FIRST_TILE \
-                    TILE_LIMIT=6 \
-                    MACHINE_NAME=$machine_name \
-                    FLOWCELL_BARCODE=$flowcell \
-                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-                    MULTIPLEX_PARAMS="${multiplex_params}" \
-                    MAX_READS_IN_RAM_PER_TILE=1200000
-                    popd
-
-                      if [ "$z" == 1 ] ; then
-                        ((FIRST_TILE+=6))
-                      elif [ "$z" == 2 ] ; then
-                        ((FIRST_TILE-=6))
-                      fi
-
-                  done
-
-
-                  if [ "$m" == 3 ] || [ "$m" == 6 ] || [ "$m" == 12 ] || [ "$m" == 15 ] ; then
-                    ((FIRST_TILE+=800))
-                  elif [ "$m" == 9 ] ; then
-                    ((FIRST_TILE+=7800))
-                  else
-                    ((FIRST_TILE+=100))
-                  fi
-
-
-            done
-        elif [ "${3}" == 1 ] ; then #NextSeq MidOutput
-           for m in {1..6}
-              do
-
-                for z in {1..2}
-                  do
-
-                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-                  fi
-
-                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-
-                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-                    NUM_PROCESSORS=$NSLOTS \
-                    read_structure=$read_structure \
-                    RUN_BARCODE=$run_barcode \
-                    LANE=${i} \
-                    FIRST_TILE=$FIRST_TILE \
-                    TILE_LIMIT=6 \
-                    MACHINE_NAME=$machine_name \
-                    FLOWCELL_BARCODE=$flowcell \
-                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-                    MULTIPLEX_PARAMS="${multiplex_params}" \
-                    MAX_READS_IN_RAM_PER_TILE=1200000
-                    popd
-
-                      if [ "$z" == 1 ] ; then
-                        ((FIRST_TILE+=6))
-                      elif [ "$z" == 2 ] ; then
-                        ((FIRST_TILE-=6))
-                      fi
-
-                  done
-
-
-                  if [ "$m" == 2 ] || [ "$m" == 3 ] || [ "$m" == 5 ] || [ "$m" == 6 ] ; then
-                    ((FIRST_TILE+=100))
-                  elif [ "$m" == 4 ] ; then
-                    ((FIRST_TILE+=9800))
-                  fi
-
-
+                TILE_ARRAY+=(${item})
             done
 
-        elif [ "${3}" == 3 ] ; then #MiSeq run
-
-          FIRST_TILE=1101
-          for j in {1..2}
-            do
-              for o in {1..19}
+            SORTED_TILE_ARRAY=( $(
+                for el in "${TILE_ARRAY[@]}"
                 do
-                  if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-                    mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
-                  fi
+                    echo "$el"
+                done | sort) )
 
-                    pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+            for p in "${!SORTED_TILE_ARRAY[@]}"; do
 
-                qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
-                    NUM_PROCESSORS=$NSLOTS \
-                    read_structure=$read_structure \
-                    RUN_BARCODE=$run_barcode \
-                    LANE=${i} \
-                    FIRST_TILE=$FIRST_TILE \
-                    TILE_LIMIT=1 \
-                    MACHINE_NAME=$machine_name \
-                    FLOWCELL_BARCODE=$flowcell \
-                    BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
-                    MULTIPLEX_PARAMS="${multiplex_params}" \
-                    MAX_READS_IN_RAM_PER_TILE=1200000
-                    popd
+               if (( (( $p )) % 6 == 0 ))
+                 then
+                 FIRST_TILE=${SORTED_TILE_ARRAY[$p]}
 
-                    ((FIRST_TILE+=1))
-              done
-              ((FIRST_TILE+=981))
-          done
+                 if [[ ! -d "${output_path}/fastq/${FIRST_TILE}" ]] ; then
+                    mkdir -p -m 777 "${output_path}/fastq/${FIRST_TILE}"
+                 fi
 
-        fi
-done
+                 pushd "${output_path}/fastq/${FIRST_TILE}"
+
+                    qsub -hold_jid lanebarcode -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+                        NUM_PROCESSORS=$NSLOTS \
+                        read_structure=$read_structure \
+                        RUN_BARCODE=$run_barcode \
+                        FIRST_TILE=$FIRST_TILE \
+                        TILE_LIMIT=6 \
+                        MACHINE_NAME=$machine_name \
+                        FLOWCELL_BARCODE=$flowcell \
+                        BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
+                        MULTIPLEX_PARAMS="${multiplex_params}" \
+                        MAX_READS_IN_RAM_PER_TILE=1200000
+                 popd
+
+               fi
+            done
 
 popd
 
