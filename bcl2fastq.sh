@@ -124,43 +124,6 @@ else
 	is_miseq=false
 fi
 
-
-    pushd "${run_path}/Data/Intensities/BaseCalls"
-    TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
-    popd
-
-    TILE_ARRAY=()
-    for item in ${TILES[*]}
-      do
-        TILE_ARRAY+=(${item})
-    done
-
-    SORTED_TILE_ARRAY=( $(
-        for el in "${TILE_ARRAY[@]}"
-        do
-            echo "$el"
-        done | sort) )
-
-    ARRAY_ONE=()
-    ARRAY_TWO=()
-
-    for m in "${!SORTED_TILE_ARRAY[@]}"; do
-       if (( (( $m )) % 6 == 0 ))
-         then
-         SORT_TILE=${SORTED_TILE_ARRAY[$m]}
-          if [[ $SORT_TILE == *"1_"* ]]
-            then
-              ARRAY_ONE+=(${SORT_TILE##*_})
-          elif [[ $SORT_TILE == *"3_"* ]]
-            then
-              ARRAY_TWO+=(${SORT_TILE##*_})
-          fi
-       fi
-    done
-
-
-
-
 for i in `seq 1 ${lanecount}`
 do
 	echo processing lane ${i}
@@ -224,6 +187,8 @@ do
 		BASECALLS_DIR="${run_path}/Data/Intensities/BaseCalls" \
 		METRICS_FILE="L${i}_${metrics_name}" BARCODE_FILE="${barcode_params}"
 	fi
+done
+
 
      PICARD ()
           {
@@ -233,7 +198,7 @@ do
 
             pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
 
-        qsub -hold_jid lanebarcode${i} -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+        qsub -hold_jid "lanebarcode${1}" -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
             NUM_PROCESSORS=$NSLOTS \
             read_structure=$read_structure \
             RUN_BARCODE=$run_barcode \
@@ -250,22 +215,28 @@ do
 
 
 
-        if [ $i == 1 ] || [ $i == 2 ] ; then
-          for h in "${!ARRAY_ONE[@]}"; do
-            FIRST_TILE=${ARRAY_ONE[$h]}
-            PICARD ${i} ${FIRST_TILE}
-          done
+           pushd "${run_path}/Data/Intensities/BaseCalls"
+            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
+           popd
+
+            TILE_ARRAY=()
+            for item in ${TILES[*]}
+              do
+                TILE_ARRAY+=(${item})
+            done
+
+            for tile in ${!TILE_ARRAY[@]}
+              do
+                if (( (( $tile )) % 6 == 0 ))
+                  then
+                    LANE=${TILE_ARRAY[$tile]%_*}
+                    TILE=${TILE_ARRAY[$tile]##*_}
+                    PICARD ${LANE} ${TILE}
+                fi
+            done
 
 
-        elif [ $i == 3 ] || [ $i == 4 ] ; then
-          for h in "${!ARRAY_TWO[@]}"; do
-            FIRST_TILE=${ARRAY_TWO[$h]}
-            PICARD ${i} ${FIRST_TILE}
-          done
-        fi
 
-
-done
 
 popd
 
