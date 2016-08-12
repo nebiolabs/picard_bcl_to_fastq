@@ -217,7 +217,7 @@ fi
                         NUM_PROCESSORS=$NSLOTS \
                         read_structure=$read_structure \
                         RUN_BARCODE=$run_barcode \
-                        FIRST_TILE=$FIRST_TILE \
+                        FIRST_TILE=1_11101 \
                         TILE_LIMIT=6 \
                         MACHINE_NAME=$machine_name \
                         FLOWCELL_BARCODE=$flowcell \
