@@ -147,13 +147,13 @@ fi
     for m in "${!SORTED_TILE_ARRAY[@]}"; do
        if (( (( $m )) % 6 == 0 ))
          then
-         FIRST_TILE=${SORTED_TILE_ARRAY[$m]}
-          if [[ $FIRST_TILE == *"1_"* ]]
+         SORT_TILE=${SORTED_TILE_ARRAY[$m]}
+          if [[ $SORT_TILE == *"1_"* ]]
             then
-              ARRAY_ONE+=(${FIRST_TILE##*_})
-          elif [[ $FIRST_TILE == *"3_"* ]]
+              ARRAY_ONE+=(${SORT_TILE##*_})
+          elif [[ $SORT_TILE == *"3_"* ]]
             then
-              ARRAY_TWO+=(${FIRST_TILE##*_})
+              ARRAY_TWO+=(${SORT_TILE##*_})
           fi
        fi
     done
@@ -255,6 +255,7 @@ do
             FIRST_TILE=${ARRAY_ONE[$h]}
             PICARD ${i} ${FIRST_TILE}
           done
+
 
         elif [ $i == 3 ] || [ $i == 4 ] ; then
           for h in "${!ARRAY_TWO[@]}"; do
