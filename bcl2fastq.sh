@@ -192,11 +192,11 @@ done
 
      PICARD ()
           {
-          if [[ ! -d "${output_path}/fastq/L_${i}_${FIRST_TILE}" ]] ; then
-            mkdir -p -m 777 "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+          if [[ ! -d "${output_path}/fastq/L_$1_$2" ]] ; then
+            mkdir -p -m 777 "${output_path}/fastq/L_$1_$2"
           fi
 
-            pushd "${output_path}/fastq/L_${i}_${FIRST_TILE}"
+            pushd "${output_path}/fastq/L_$1_$2"
 
         qsub -hold_jid "lanebarcode${1}" -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
             NUM_PROCESSORS=$NSLOTS \
@@ -216,7 +216,7 @@ done
 
 
            pushd "${run_path}/Data/Intensities/BaseCalls"
-            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/'`
+            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/' | sort`
            popd
 
             TILE_ARRAY=()
