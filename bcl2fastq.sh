@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -x
+set -o errexit
+
 #argument1 : path to the samplesheet in a run folder
 #argument2 : user email
 
