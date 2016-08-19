@@ -31,9 +31,15 @@ echo "Sample sheet: ${sample_sheet}"
 run_path=`dirname "${sample_sheet}"`
 echo "Run path: ${run_path}"
 
-if [[ $( wc -l "${sample_sheet}" | cut -f 1 -d ' ' ) -eq 0 ]]; then
+
+if [[ ! $( wc -l "${sample_sheet}" | cut -f 1 -d ' ' ) -gt 1 ]]; then # wc -l can't find lines, try transforming \r to \n 
 	echo "fixing line ending from \r to \n"
-	sed -i 's/\r/\n/g' "${sample_sheet}"
+	sed -ipre_lineendfix 's/\r/\n/g' "${sample_sheet}"
+fi
+
+if [[ $( wc -l "${sample_sheet}" | cut -f 1 -d ' ' ) -lt 10 ]]; then
+	echo "${sample_sheet} does not have enough lines."
+	exit 1	
 fi
 
 run_barcode=`echo "${run_path}" | rev | cut -f1 -d'/' | tr '_' '-' | rev | cut -f2 -d'-'`
