@@ -223,10 +223,19 @@ done
             }
 
 
+            if [ -f ${run_path}/Data/Intensities/config.xml ]; then
+                pushd "${run_path}/Data/Intensities/"
+                TILES=`xml_grep 'Tile' config.xml --text_only | sort`
+                popd
+            elif [ -f ${run_path}/RunInfo.xml ] ; then
+                pushd "${run_path}"
+                TILES=`xml_grep 'Tile' RunParameters.xml --text_only | sort`
+                popd
+            fi
 
-           pushd "${run_path}/Data/Intensities/BaseCalls"
-            TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/' | sort`
-           popd
+#           pushd "${run_path}/Data/Intensities/BaseCalls"
+#           TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/' | sort`
+#           popd
 
             TILE_ARRAY=()
             for item in ${TILES[*]}
