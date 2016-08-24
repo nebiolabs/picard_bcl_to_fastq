@@ -11,6 +11,6 @@ do
   for r in 1 2 ;
   do
     echo "combining " *_$f.$r.fastq
-    cat fastq/*/*_$f.$r.fastq | /mnt/galaxy/data/galaxy/sw/bin/pigz -p 28 > "combined_fastq/$f.$r.fastq.gz";
+    cat fastq/*/*_$f.$r.fastq | /mnt/galaxy/data/galaxy/sw/bin/pigz -p 10 > "combined_fastq/$f.$r.fastq.gz";
   done;
 done;
