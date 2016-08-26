@@ -6,6 +6,7 @@ set -o errexit
 #argument1 : path to the samplesheet in a run folder
 #argument2 : user email
 
+
 #Path setup
 PICARD_PATH=/mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1
 #CPU_COUNT=`lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l`
@@ -207,7 +208,7 @@ done
 
             pushd "${output_path}/fastq/L_$1_$2"
 
-        qsub -hold_jid "lanebarcode${1}" -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
+        qsub -hold_jid "lanebarcode$1" -N TileProcess -b y -pe smp 4 -cwd  $JAVA_PATH/java $JAVA_OPTS -jar $PICARD_PATH/picard.jar IlluminaBasecallsToFastq \
             NUM_PROCESSORS=$NSLOTS \
             read_structure=$read_structure \
             RUN_BARCODE=$run_barcode \
@@ -223,19 +224,29 @@ done
             }
 
 
-            if [ -f ${run_path}/Data/Intensities/config.xml ]; then
-                pushd "${run_path}/Data/Intensities/"
-                TILES=`xml_grep 'Tile' config.xml --text_only | sort`
-                popd
-            elif [ -f ${run_path}/RunInfo.xml ] ; then
-                pushd "${run_path}"
-                TILES=`xml_grep 'Tile' RunParameters.xml --text_only | sort`
-                popd
-            fi
+#            if [ -f ${run_path}/Data/Intensities/config.xml ]; then
+#                pushd "${run_path}/Data/Intensities/"
+#                TILES=`${XML_GREP} 'Tile' config.xml --text_only | sort`
+#                popd
+#            elif [ -f ${run_path}/RunInfo.xml ] ; then
+#                pushd "${run_path}"
+#                TILES=`${XML_GREP} 'Tile' RunParameters.xml --text_only | sort`
+#                popd
+#            fi
 
 #           pushd "${run_path}/Data/Intensities/BaseCalls"
 #           TILES=`find -name '*_barcode.txt' | sed -r 's/^.*_([0-9]+_[0-9]+)_barcode.txt$/\1/' | sort`
 #           popd
+
+
+            TILES=()
+            for lane in `seq 1 ${lanecount}`
+              do
+                for tile in $(/mnt/galaxy/data/galaxy/sw/jre1.8.0_92/bin/java -jar /mnt/galaxy/data/galaxy/sw/picard-tools-2.0.1/picard.jar CheckIlluminaDirectory B="${run_path}/Data/Intensities/BaseCalls" RS=72T8B72T L=$lane 2>&1  | grep 'Expected tiles' | cut -f4 -d ':'| tr -d ',' )
+                  do
+                    TILES+=("${lane}_${tile}")
+            done
+                done
 
             TILE_ARRAY=()
             for item in ${TILES[*]}
@@ -243,12 +254,12 @@ done
                 TILE_ARRAY+=(${item})
             done
 
-            for tile in ${!TILE_ARRAY[@]}
+            for tile_index in ${!TILE_ARRAY[@]}
               do
-                if (( (( $tile )) % 6 == 0 ))
+                if (( (( $tile_index )) % 6 == 0 ))
                   then
-                    LANE=${TILE_ARRAY[$tile]%_*}
-                    TILE=${TILE_ARRAY[$tile]##*_}
+                    LANE=${TILE_ARRAY[$tile_index]%_*}
+                    TILE=${TILE_ARRAY[$tile_index]##*_}
                     PICARD ${LANE} ${TILE}
                 fi
             done
