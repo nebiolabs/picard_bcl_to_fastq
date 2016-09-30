@@ -28,12 +28,12 @@ The defaults are for very strict bacode splitting (you may want to increase MAX_
 This script is configured to use 200G of RAM. If your machine is smaller, set the Xmx value appropriately.
 
 This script works by attempting to sniff run format, barcodes and platform from the files in the run directory.
-It works for all the GAII-x, HiSeq, and MiSeq runs I've encountered, but YMMV.
+It works for all the GAII-x, HiSeq, Nextseq, and MiSeq runs I've encountered, but YMMV.
 
 ###Dependencies:
-- [Picard tools](http://picard.sourceforge.net/command-line-overview.shtml#IlluminaBasecallsToFastq) and Java runtime
+- [Picard tools](https://broadinstitute.github.io/picard/) and Java runtime
 - perl
 - xmllint
-- tested in "dash" shell, probably works in many sh shells
+- bash shell
 
 Patches and bug reports are welcome.
