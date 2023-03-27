@@ -1,38 +1,32 @@
-picard_bcl_to_fastq
+demux_illumina.nf
 =======================
 
 ### What is this?
-This is a wrapper script for [Picard's IlluminaBasecallsToFastq](https://broadinstitute.github.io/picard/command-line-overview.html#IlluminaBasecallsToFastq). 
+This is a nextflow wrapper script for [Picard's IlluminaBasecallsToSam](https://broadinstitute.github.io/picard/javadoc/picard/picard/illumina/IlluminaBasecallsToSam.html).
+It is designed to work efficiently on a computing cluster, but will work on smaller machines as well.
 
 ### What does it do?
-It sniffs the run parameters (barcodes, read lengths, etc) from various files in an Illumina GAIIx, MiSeq, Nextseq or HiSeq run folder and automates the Picard tools to produce fastq files. 
-
-### Why not use the default fastq generation on the instrument?
-- In case fastq generation on the instrument fails
-- Most instruments don't do fastq generation
-- You really can't tolerate reads from one barcode showing up in another (this is a surprisingly frequent occurence)
-
-### Why not just run the picard tools by hand?
-- You don't want to manually create the files needed for those tools (and possibly introduce mistakes)
+Run inside a run directory, it demultiplexes the run and produces unaligned bam (uBam) files
 
 ### To run it:
-- [Configure](#configuration) the path to Picard and your mismatch tolerances at the top of the file
-- Feed this script the path to a valid sample sheet file (e.g. ./bcl2fastq.sh SampleSheet.csv) 
-- Wait a bit (~10 minutes for a typical miseq run)
-- Enjoy your freshly demultiplexed fastq files, conveniently placed in a new folder called "fastq"
+nextflow run demux_illumina.nf \
+    --read_structure <read structure> \
+    --flowcell <flowcell name> \
+    --max_mismatches <maximum allowed mismatches> \
+    --min_mismatch_delta <minimum distance to next closest barcode> \
+    --max_no_calls <maximum allowed no calls (i.e., Ns)> \
+    --lanecount <number of lanes> \
+    --machine <sequencing machine> \
+    --path_to_java <path to java> \
+    --path_to_picard <path to picard>
 
 ### Configuration:
 You will need to modify the path to picard variable to fit your environment.
-The defaults are for very strict barcode splitting (you may want to increase MAX_MISMATCHES and MAX_NO_CALLS).
-This script is configured to use 200G of RAM. If your machine is smaller, set the Xmx value appropriately.
-
-This script works by attempting to sniff run format, barcodes and platform from the files in the run directory.
-It works for all the GAII-x, HiSeq, Nextseq, and MiSeq runs I've encountered, but YMMV.
+This script is configured to use up to ~64G of RAM per lane demultiplexing job, and up to ~16G of RAM per tile bcl->uBam job.
+If your machine is smaller, set the Xmx value appropriately.
 
 ### Dependencies:
 - [Picard tools](https://broadinstitute.github.io/picard/) and Java runtime
-- perl
-- xmllint
-- bash shell
+- [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
 
 Patches and bug reports are welcome.
