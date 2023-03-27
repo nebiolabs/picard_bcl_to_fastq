@@ -131,7 +131,6 @@ process illuminaBasecallsToSam {
                 MAX_READS_IN_RAM_PER_TILE=3000000 \
                 MAX_RECORDS_IN_RAM=3000000 \
                 PLATFORM=ILLUMINA \
-                SEQUENCING_CENTER=\"New_England_Biolabs\" \
                 INCLUDE_BC_IN_RG_TAG=true \
                 TMP_DIR=/state/partition1/sge_tmp \
                 BARCODE_POPULATION_STRATEGY=ALWAYS
