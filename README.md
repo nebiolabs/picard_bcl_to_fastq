@@ -10,15 +10,15 @@ Run inside a run directory, it demultiplexes the run and produces unaligned bam 
 
 ### To run it:
 nextflow run demux_illumina.nf \
-    --read_structure <read structure> \
-    --flowcell <flowcell name> \
-    --max_mismatches <maximum allowed mismatches> \
-    --min_mismatch_delta <minimum distance to next closest barcode> \
-    --max_no_calls <maximum allowed no calls (i.e., Ns)> \
-    --lanecount <number of lanes> \
-    --machine <sequencing machine> \
-    --path_to_java <path to java> \
-    --path_to_picard <path to picard>
+    --read_structure \<read structure\> \
+    --flowcell \<flowcell name\> \
+    --max_mismatches \<maximum allowed mismatches\> \
+    --min_mismatch_delta \<minimum distance to next closest barcode\> \
+    --max_no_calls \<maximum allowed no calls (i.e., Ns)\> \
+    --lanecount \<number of lanes\> \
+    --machine \<sequencing machine\> \
+    --path_to_java \<path to java\> \
+    --path_to_picard \<path to picard\>
 
 ### Configuration:
 You will need to modify the path to picard variable to fit your environment.
