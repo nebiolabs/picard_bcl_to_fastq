@@ -9,16 +9,16 @@ It is designed to work efficiently on a computing cluster, but will work on smal
 Run inside a run directory, it demultiplexes the run and produces unaligned bam (uBam) files
 
 ### To run it:
-nextflow run demux_illumina.nf \
-    --read_structure \<read structure\> \
-    --flowcell \<flowcell name\> \
-    --max_mismatches \<maximum allowed mismatches\> \
-    --min_mismatch_delta \<minimum distance to next closest barcode\> \
-    --max_no_calls \<maximum allowed no calls (i.e., Ns)\> \
-    --lanecount \<number of lanes\> \
-    --machine \<sequencing machine\> \
-    --sequencing_center \<sequencing center\> \
-    --path_to_java \<path to java\> \
+nextflow run demux_illumina.nf \\  
+    --read_structure \<read structure\> \\  
+    --flowcell \<flowcell name\> \\  
+    --max_mismatches \<maximum allowed mismatches\> \\  
+    --min_mismatch_delta \<minimum distance to next closest barcode\> \\  
+    --max_no_calls \<maximum allowed no calls (i.e., Ns)\> \\  
+    --lanecount \<number of lanes\> \\  
+    --machine \<sequencing machine\> \\  
+    --sequencing_center \<sequencing center\> \\  
+    --path_to_java \<path to java\> \\  
     --path_to_picard \<path to picard\>
 
 ### Configuration:
