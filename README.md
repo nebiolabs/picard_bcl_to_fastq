@@ -17,6 +17,7 @@ nextflow run demux_illumina.nf \
     --max_no_calls \<maximum allowed no calls (i.e., Ns)\> \
     --lanecount \<number of lanes\> \
     --machine \<sequencing machine\> \
+    --sequencing_center \<sequencing center\> \
     --path_to_java \<path to java\> \
     --path_to_picard \<path to picard\>
 
